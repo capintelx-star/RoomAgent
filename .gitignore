@@ -1,0 +1,13 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.db
+*.sqlite
+.DS_Store
+node_modules/
+
+*.egg-info/
+backups/
+roomagent.code-workspace

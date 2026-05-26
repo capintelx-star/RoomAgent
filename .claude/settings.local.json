@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(python -m pytest -v)",
+      "Bash(python -m pytest tests/test_splits.py -v)",
+      "Bash(powershell *)",
+      "Bash(python *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(xargs wc -l)",
+      "Bash(grep -v \"^$\")",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\twajs\\\\OneDrive\\\\Documents\\\\ai-projects\\\\roomagent\" -Recurse -Include \"*.py\", \"*.txt\", \"*.md\", \".env*\")",
+      "Bash(Select-Object FullName)",
+      "Bash(pytest tests/ -v)",
+      "Bash(pip show *)",
+      "Bash(git config *)",
+      "Bash(git filter-branch --env-filter ' *)",
+      "Bash(git stash *)",
+      "Bash(FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch --env-filter ' *)",
+      "Bash(git push *)",
+      "Bash(git checkout *)",
+      "Bash(gh repo *)",
+      "Bash(git commit *)"
+    ]
+  }
+}
