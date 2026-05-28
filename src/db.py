@@ -36,6 +36,11 @@ def init_db() -> None:
         if not _column_exists(conn, "actions", "settled_at"):
             conn.executescript((_MIGRATIONS_DIR / "003_settle.sql").read_text())
 
+    # Migration 004: per-user rent amount, leader flag, and onboarding columns on households.
+    with get_conn() as conn:
+        if not _column_exists(conn, "users", "rent_amount_cents"):
+            conn.executescript((_MIGRATIONS_DIR / "004_onboarding.sql").read_text())
+
 
 # --- Lookup helpers used across multiple handlers ---
 

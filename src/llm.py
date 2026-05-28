@@ -132,6 +132,65 @@ _SYSTEM = (
 )
 
 
+_CHORE_TOOL: dict = {
+    "name": "parse_chore_list",
+    "description": "Extract chore names from a natural language chore list.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "chores": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": (
+                    "Chore names as lowercase singular words or short phrases. "
+                    "e.g. ['trash', 'dishes', 'bathroom', 'laundry']. "
+                    "Strip schedule/frequency info — return only the name."
+                ),
+            },
+            "confident": {
+                "type": "boolean",
+                "description": (
+                    "True if chore names are clearly identifiable; "
+                    "False only if the text is not recognizable as a chore list at all."
+                ),
+            },
+        },
+        "required": ["chores", "confident"],
+    },
+}
+
+_CHORE_SYSTEM = (
+    "Extract household chore names from a roommate's message. "
+    "Return each as a lowercase singular word or short phrase (e.g. 'trash', 'dishes', 'bathroom'). "
+    "Ignore schedule/frequency — return names only. "
+    "Set confident=True even for varied phrasings like 'take out the garbage' (→ 'trash'). "
+    "Set confident=False only if the text is clearly not a chore list."
+)
+
+
+async def parse_chores(text: str) -> tuple[list[str], bool]:
+    """
+    Parse a chore list from natural language.
+
+    Returns (chore_names, confident). confident=False means Claude couldn't identify chores.
+    """
+    try:
+        response = await _client.messages.create(
+            model=MODEL,
+            max_tokens=256,
+            system=_CHORE_SYSTEM,
+            tools=[_CHORE_TOOL],
+            tool_choice={"type": "tool", "name": "parse_chore_list"},
+            messages=[{"role": "user", "content": text}],
+        )
+        for block in response.content:
+            if block.type == "tool_use":
+                return block.input.get("chores", []), bool(block.input.get("confident", True))
+    except (anthropic.APIError, anthropic.AuthenticationError) as e:
+        logger.warning("Chore parse error: %s", e)
+    return [], False
+
+
 async def parse_message(text: str) -> IntentResult:
     """
     Send a message to Claude and return a validated IntentResult.

@@ -47,16 +47,43 @@ Or directly:
 python src/bot.py
 ```
 
+## Onboarding
+
+### Leader (whoever sets up the household)
+
+1. Add the bot to your group chat and run `/start`.
+2. The bot walks you through two questions:
+   - Rent due day (1–28)
+   - Recurring chores — natural language works: *"trash on tuesdays, dishes every day"* — or say *skip* to add later.
+3. Share the group with your roommates and tell them to run `/join`.
+4. Run `/join` yourself too so the bot knows your name and rent amount.
+
+To change the due date or chores later, run `/setup` (leader only).
+
+### Roommates
+
+Run `/join` with no arguments — the bot asks you three questions:
+- Your name
+- Your monthly rent amount
+- Your Venmo handle (optional)
+
+**Power-user shortcut:** `/join Thomas 900 @venmo_handle` skips the questions.
+
 ## Commands
 
 | Command | What it does |
 |---|---|
-| `/start` | Register this group chat as a household |
-| `/join <name> [venmo_handle]` | Add yourself as a roommate |
+| `/start` | Register this group chat as a household (runs leader setup flow) |
+| `/setup` | Update rent due date or chores — leader only |
+| `/join` | Add yourself as a roommate (guided flow) |
 | `/bought <text>` | Log a purchase (e.g. `/bought TP $12 Costco`) |
 | `/need <item>` | Flag something as low stock, returns Amazon link |
-| `/rent` | Show this month's rent status |
+| `/rent` | Show rent status — who owes what and when it's due |
 | `/owe` | DMs you the current balance breakdown |
+| `/did <chore>` | Log a chore (e.g. `/did dishes`) |
+| `/chorestats` | DMs you the monthly chore leaderboard |
+| `/settle` | Show who owes whom with Venmo links |
+| `/settle confirm` | Mark everything paid and reset balances |
 | `/undo` | Reverse your last action |
 | `/help` | Show this list |
 
@@ -77,5 +104,8 @@ src/
     amazon.py     — affiliate link builder
 migrations/
   001_init.sql    — full database schema
+  002_chores.sql  — simplified chore tracking schema
+  003_settle.sql  — settled_at column for balance resets
+  004_onboarding.sql — per-user rent amounts, leader flag, household due-day
 tests/
 ```

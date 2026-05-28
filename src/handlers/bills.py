@@ -28,10 +28,7 @@ from utils.splits import simplify_debts
 
 
 async def rent_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """
-    /rent              → show rent config + next due date
-    /rent <amount> <due_day> → set up or update rent (e.g. /rent 2400 1)
-    """
+    """/rent — show current rent status (who owes what, due date)."""
     if not update.effective_chat or not update.message or not update.effective_user:
         return
 
@@ -43,97 +40,44 @@ async def rent_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     user = get_user(household["id"], update.effective_user.id)
     if not user:
-        await update.message.reply_text("Join first with `/join YourName`.", parse_mode="Markdown")
+        await update.message.reply_text("Join first with `/join`.", parse_mode="Markdown")
         return
 
-    args = context.args or []
-
-    if args:
-        # Setup / update rent
-        try:
-            amount_dollars = float(args[0].lstrip("$").replace(",", ""))
-            amount_cents = round(amount_dollars * 100)
-            due_day = int(args[1])
-            if not (1 <= due_day <= 28):
-                raise ValueError("due_day must be 1–28")
-        except (IndexError, ValueError):
-            await update.message.reply_text(
-                "Usage: `/rent <amount> <due_day>`\n"
-                "Example: `/rent 2400 1` sets $2400/month due on the 1st.",
-                parse_mode="Markdown",
-            )
-            return
-
-        with get_conn() as conn:
-            existing = conn.execute(
-                "SELECT id FROM recurring_bills WHERE household_id = ? AND is_rent = 1",
-                (household["id"],),
-            ).fetchone()
-
-            if existing:
-                conn.execute(
-                    "UPDATE recurring_bills SET amount_cents = ?, due_day = ? WHERE id = ?",
-                    (amount_cents, due_day, existing["id"]),
-                )
-                msg = "updated"
-            else:
-                conn.execute(
-                    "INSERT INTO recurring_bills "
-                    "(household_id, name, amount_cents, due_day, split_method, is_rent) "
-                    "VALUES (?, 'Rent', ?, ?, 'equal', 1)",
-                    (household["id"], amount_cents, due_day),
-                )
-                msg = "set up"
-
-        users = get_household_users(household["id"])
-        n = len(users) or 1
-        per_person = amount_cents / n / 100
+    due_day = household["rent_due_day"]
+    if not due_day:
         await update.message.reply_text(
-            f"Rent {msg}: *${amount_dollars:,.2f}/month*, due on the *{due_day}{_ordinal(due_day)}*.\n"
-            f"Split equally: *${per_person:,.2f}/person* ({n} roommates).",
-            parse_mode="Markdown",
+            "Rent hasn't been configured yet.\n"
+            "The household leader should run /setup to set the due date."
         )
+        return
 
+    today = date.today()
+    days_until = due_day - today.day
+    if days_until > 0:
+        timing = f"due in {days_until} day{'s' if days_until != 1 else ''}"
+    elif days_until == 0:
+        timing = "due *today*"
     else:
-        # Show status
-        with get_conn() as conn:
-            rent = conn.execute(
-                "SELECT amount_cents, due_day FROM recurring_bills "
-                "WHERE household_id = ? AND is_rent = 1",
-                (household["id"],),
-            ).fetchone()
+        timing = f"was due {-days_until} day{'s' if days_until != -1 else ''} ago"
 
-        if not rent:
-            await update.message.reply_text(
-                "Rent isn't configured yet.\n"
-                "Set it up: `/rent 2400 1` (amount, due day of month)",
-                parse_mode="Markdown",
-            )
-            return
+    users = get_household_users(household["id"])
+    total_cents = sum(u["rent_amount_cents"] for u in users)
 
-        today = date.today()
-        due_day = rent["due_day"]
-        days_until = due_day - today.day
-        amount = rent["amount_cents"] / 100
+    lines = [
+        f"*Rent status* — the {due_day}{_ordinal(due_day)} of each month ({timing})\n"
+    ]
+    for u in users:
+        amt = u["rent_amount_cents"] / 100
+        lines.append(f"• {u['name']}: *${amt:,.2f}/month*")
 
-        if days_until > 0:
-            timing = f"due in {days_until} day{'s' if days_until != 1 else ''}"
-        elif days_until == 0:
-            timing = "due *today*"
-        else:
-            timing = f"was due {-days_until} day{'s' if days_until != -1 else ''} ago"
+    if total_cents:
+        lines.append(f"\nTotal: *${total_cents / 100:,.2f}/month*")
+    else:
+        lines.append("\n_(No rent amounts set — roommates should /join to add their amounts)_")
 
-        users = get_household_users(household["id"])
-        n = len(users) or 1
-        per_person = amount / n
+    lines.append("\nLog rent paid: `paid rent $X`")
 
-        await update.message.reply_text(
-            f"*Rent status*\n\n"
-            f"${amount:,.2f}/month — {timing} (the {due_day}{_ordinal(due_day)})\n"
-            f"Per person: ${per_person:,.2f} ({n} roommates, equal split)\n\n"
-            "Log rent paid: `paid rent $2400`",
-            parse_mode="Markdown",
-        )
+    await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
 
 
 async def owe_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

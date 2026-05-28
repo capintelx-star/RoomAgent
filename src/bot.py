@@ -8,7 +8,12 @@ from db import init_db
 from handlers.bills import owe_cmd, rent_cmd
 from handlers.chores import chore_cmd, chorestats_cmd, did_cmd
 from handlers.health import health_cmd
-from handlers.onboarding import help_cmd, join_cmd, start_cmd, undo_cmd
+from handlers.onboarding import (
+    help_cmd,
+    make_join_handler,
+    make_start_handler,
+    undo_cmd,
+)
 from handlers.settle import settle_cmd
 from handlers.supplies import bought_cmd, free_text_handler, need_cmd
 
@@ -44,9 +49,11 @@ def main() -> None:
         .build()
     )
 
+    # Onboarding ConversationHandlers — registered first so they take priority
+    app.add_handler(make_start_handler())
+    app.add_handler(make_join_handler())
+
     # Slash commands (deterministic — no LLM)
-    app.add_handler(CommandHandler("start", start_cmd))
-    app.add_handler(CommandHandler("join", join_cmd))
     app.add_handler(CommandHandler("bought", bought_cmd))
     app.add_handler(CommandHandler("need", need_cmd))
     app.add_handler(CommandHandler("rent", rent_cmd))
