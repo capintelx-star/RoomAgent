@@ -15,7 +15,9 @@ from pydantic import BaseModel, ValidationError
 from config import ANTHROPIC_API_KEY
 
 logger = logging.getLogger(__name__)
-_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+# AsyncAnthropic binds its httpx.AsyncClient lazily (not at __init__ time), so this
+# module-level singleton is loop-safe at import time. Do NOT wrap calls in asyncio.to_thread.
+_client = anthropic.AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 MODEL = "claude-sonnet-4-5"
 
 _last_llm_status: str = "never called"
@@ -130,7 +132,7 @@ _SYSTEM = (
 )
 
 
-def parse_message(text: str) -> IntentResult:
+async def parse_message(text: str) -> IntentResult:
     """
     Send a message to Claude and return a validated IntentResult.
 
@@ -140,7 +142,7 @@ def parse_message(text: str) -> IntentResult:
     """
     global _last_llm_status
     try:
-        response = _client.messages.create(
+        response = await _client.messages.create(
             model=MODEL,
             max_tokens=512,
             system=_SYSTEM,

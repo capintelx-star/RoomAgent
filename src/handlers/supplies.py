@@ -27,7 +27,7 @@ async def bought_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         )
         return
 
-    result = parse_message(text)
+    result = await parse_message(text)
     if result.intent != "purchase":
         # /bought was explicit, so try parsing the whole thing as a purchase
         # by nudging the intent if amount_cents was found
@@ -104,7 +104,7 @@ async def free_text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     if not user:
         return  # not joined — silently ignore free text
 
-    result = parse_message(text)
+    result = await parse_message(text)
 
     if result.intent == "purchase":
         if not result.amount_cents:
