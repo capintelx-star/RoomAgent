@@ -17,6 +17,8 @@ from telegram.ext import (
     filters,
 )
 
+from telegram import BotCommand
+
 from db import get_conn, get_household, get_household_users, get_user
 from llm import parse_chores
 
@@ -543,6 +545,43 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "`got dish soap $18` · `I cleaned the bathroom`",
         parse_mode="Markdown",
     )
+
+
+# ── Bot-added-to-group welcome ─────────────────────────────────────────────────
+
+async def bot_added_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Send a setup prompt the moment the bot is added to a group chat."""
+    if not update.message or not update.message.new_chat_members:
+        return
+    bot_id = context.bot.id
+    if not any(m.id == bot_id for m in update.message.new_chat_members):
+        return
+
+    await update.message.reply_text(
+        "Hey everyone! I'm Roomagent — I help you track shared expenses, chores, and bills.\n\n"
+        "To get started, the *group leader* should run /start.\n"
+        "Everyone else runs /join once the household is set up.\n\n"
+        "Run /help to see all commands.",
+        parse_mode="Markdown",
+    )
+
+
+# ── Bot command registry (populates the Telegram '/' menu) ────────────────────
+
+BOT_COMMANDS = [
+    BotCommand("start", "Register this group as a household (leader)"),
+    BotCommand("setup", "Update rent due date or chores (leader only)"),
+    BotCommand("join", "Add yourself as a roommate"),
+    BotCommand("bought", "Log a purchase — e.g. /bought TP $12 Costco"),
+    BotCommand("need", "Flag something low stock + Amazon link"),
+    BotCommand("rent", "Show rent status — who owes what and when"),
+    BotCommand("owe", "DM you the current balance breakdown"),
+    BotCommand("did", "Log a chore — e.g. /did dishes"),
+    BotCommand("chorestats", "DM you the chore leaderboard"),
+    BotCommand("settle", "Show who owes whom with Venmo links"),
+    BotCommand("undo", "Reverse your last action"),
+    BotCommand("help", "Show all commands"),
+]
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────

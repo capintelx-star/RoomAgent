@@ -9,6 +9,8 @@ from handlers.bills import owe_cmd, rent_cmd
 from handlers.chores import chore_cmd, chorestats_cmd, did_cmd
 from handlers.health import health_cmd
 from handlers.onboarding import (
+    BOT_COMMANDS,
+    bot_added_handler,
     help_cmd,
     make_join_handler,
     make_start_handler,
@@ -25,10 +27,13 @@ logger = logging.getLogger(__name__)
 
 
 async def _post_init(app: Application) -> None:
-    """Start the APScheduler after the bot's event loop is running."""
+    """Start scheduler and register bot commands in the Telegram '/' menu."""
     from scheduler import start_scheduler
     start_scheduler(app.bot)
     logger.info("Scheduler started.")
+
+    await app.bot.set_my_commands(BOT_COMMANDS)
+    logger.info("Bot commands registered.")
 
 
 async def _post_shutdown(app: Application) -> None:
@@ -52,6 +57,9 @@ def main() -> None:
     # Onboarding ConversationHandlers — registered first so they take priority
     app.add_handler(make_start_handler())
     app.add_handler(make_join_handler())
+
+    # Welcome message when bot is added to a group
+    app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, bot_added_handler))
 
     # Slash commands (deterministic — no LLM)
     app.add_handler(CommandHandler("bought", bought_cmd))
